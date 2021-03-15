@@ -36,11 +36,11 @@ class MorphOvumSkill(Skill):
 
     @match_crontab('30 */3 * * *', timezone="Europe/Zurich")
     async def say_song(self, event):
-        song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/current/track').text)
-        if song_data['msg'] == 'ok!':
-            msg =  sself.append_webpage(song_data['data'])
+        song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
+        if song_data['err']:
+            msg =  self.append_webpage(song_data['msg'])
         else:
-            msg = 'Error: ' + str(song_data)
+            msg = 'Error: ' + song_data['msg']
 
         await self.opsdroid.send(
             Message(
@@ -49,13 +49,17 @@ class MorphOvumSkill(Skill):
             )
         )
 
+    @match_regex('^!mo reauth$')
+    async def re_auth(self, message):
+        self.auth()
+
     @match_regex('^!s$')
     async def say_song(self, message):
         song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
-        if song_data['msg'] == 'ok!':
-            msg =  self.append_webpage(song_data['data'])
+        if song_data['err']:
+            msg = 'Error: ' + str(song_data['msg'])
         else:
-            msg = 'Error: ' + str(song_data)
+            msg =  self.append_webpage(song_data['msg'])
 
         await message.respond(
             Message(
@@ -91,8 +95,13 @@ class MorphOvumSkill(Skill):
                     url
                 ).text)
 
+            if output['err']:
+                output = 'Error: ' + output['msg']
+            else:
+                output = output['msg']
+
             await message.respond(
                 Message(
-                    text=self.append_webpage(str(output))
+                    text=self.append_webpage(output)
                 )
             )
