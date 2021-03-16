@@ -34,13 +34,18 @@ class MorphOvumSkill(Skill):
     def append_webpage(self, text):
         return text + ' 🎵 ' + self.config.get('morphovum_webpage_link') + ' 🎵' 
 
+    
+    @match_regex('^!mo reauth$')
+    async def re_auth(self, message):
+        self.auth()
+
     @match_crontab('30 */3 * * *', timezone="Europe/Zurich")
-    async def say_song(self, event):
+    async def say_song_interval(self, event):
         song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
         if song_data['err']:
-            msg =  self.append_webpage(song_data['msg'])
-        else:
             msg = 'Error: ' + song_data['msg']
+        else:
+            msg =  self.append_webpage(song_data['msg'])
 
         await self.opsdroid.send(
             Message(
@@ -48,10 +53,6 @@ class MorphOvumSkill(Skill):
                 target=self.config.get('room_music')
             )
         )
-
-    @match_regex('^!mo reauth$')
-    async def re_auth(self, message):
-        self.auth()
 
     @match_regex('^!s$')
     async def say_song(self, message):
