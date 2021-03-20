@@ -32,14 +32,15 @@ class MorphOvumSkill(Skill):
         )
 
     def append_webpage(self, text):
-        return text + ' 🎵 ' + self.config.get('morphovum_webpage_link') + ' 🎵' 
+        return '🎵 ' + self.config.get('morphovum_webpage_link') + ' 🎵 ' + text + ' 🎵'
 
     
     @match_regex('^!mo reauth$')
     async def re_auth(self, message):
         self.auth()
 
-    @match_crontab('30 */3 * * *', timezone="Europe/Zurich")
+    @match_crontab('38 1 * * *', timezone="Europe/Zurich")
+    @match_crontab('20 16 * * *', timezone="Europe/Zurich")
     async def say_song_interval(self, event):
         song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
         if song_data['err']:
