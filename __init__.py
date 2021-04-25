@@ -5,7 +5,7 @@
 #   
 ######################################################################
 from opsdroid.skill import Skill
-from opsdroid.matchers import match_regex, match_crontab, match_event
+from opsdroid.matchers import match_regex, match_crontab, match_event, match_always
 from opsdroid.events import Message, Reaction, Image
 from random import choice, randint
 from time import time, sleep
@@ -23,6 +23,41 @@ class MorphOvumSkill(Skill):
         self.auth()
         self.api_methods = json.loads(self.session.get(self.config.get('morphovum_api_link') + '/help').text)['data']
 
+        self.bot_was_last_message = False
+
+
+    ##################################################################
+    #
+    #   1. Avoid spamming
+    #       The bot notifies if a stream is ongoing every hour
+    #       if no one posts within that hour, it is superfluous;
+    #       this functionality prevents that.
+    #
+    ##################################################################
+    async def avoid_spam_send(self, msg):
+        if not self.bot_was_last_message:
+            await self.opsdroid.send(
+                Message(
+                    text=msg,
+                    target=self.config.get('room_music')
+                )
+            )
+            self.bot_was_last_message = True
+        else:
+            pass
+
+    @match_always
+    async def who_last_said(self, event):
+        if event.target == self.config.get('room_music'):
+            self.bot_was_last_message = False
+
+
+    ##################################################################
+    #
+    #   2. MorphOvum
+    #       MorphOvum interaction functionality
+    #
+    ##################################################################
     def auth(self):
         self.session.post(
             self.config.get('morphovum_api_link') + 'admin',
@@ -48,7 +83,7 @@ class MorphOvumSkill(Skill):
         else:
             msg =  self.append_webpage(song_data['msg'])
 
-        await self.opsdroid.send(
+        await self.avoid_spam_send(
             Message(
                 text=msg,
                 target=self.config.get('room_music')
