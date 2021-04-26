@@ -83,12 +83,7 @@ class MorphOvumSkill(Skill):
         else:
             msg =  self.append_webpage(song_data['msg'])
 
-        await self.avoid_spam_send(
-            Message(
-                text=msg,
-                target=self.config.get('room_music')
-            )
-        )
+        await self.avoid_spam_send(msg)
 
     @match_regex('^!s$')
     async def say_song(self, message):
