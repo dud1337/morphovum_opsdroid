@@ -8,7 +8,7 @@ from opsdroid.skill import Skill
 from opsdroid.matchers import match_regex, match_crontab, match_event, match_always
 from opsdroid.events import Message, Reaction, Image
 from random import choice, randint
-from time import time, sleep
+from asyncio import sleep
 
 import datetime
 import json
@@ -48,7 +48,7 @@ class MorphOvumSkill(Skill):
 
     @match_always
     async def who_last_said(self, event):
-        if event.target == self.config.get('room_music'):
+        if hasattr(event, 'target') and event.target == self.config.get('room_music'):
             self.bot_was_last_message = False
 
 
@@ -74,10 +74,12 @@ class MorphOvumSkill(Skill):
     async def re_auth(self, message):
         self.auth()
 
-    @match_crontab('38 1 * * *', timezone="Europe/Zurich")
-    @match_crontab('20 16 * * *', timezone="Europe/Zurich")
+    @match_crontab('0 0 1 * *', timezone="Europe/Zurich")
+    #@match_crontab('* * * * *', timezone="Europe/Zurich")
     async def say_song_interval(self, event):
+        await sleep(randint(1, 60 * 60 * 24 * 30))
         song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
+
         if song_data['err']:
             msg = 'Error: ' + song_data['msg']
         else:
@@ -128,7 +130,11 @@ class MorphOvumSkill(Skill):
                 ).text)
 
             if output['err']:
+                if output['msg'] == 'requires admin privileges':
+                    self.auth()
+                    return self.api_request(message)
                 output = 'Error: ' + output['msg']
+
             else:
                 output = output['msg']
 
