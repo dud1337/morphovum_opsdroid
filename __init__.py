@@ -77,7 +77,7 @@ class MorphOvumSkill(Skill):
     @match_crontab('0 0 1 * *', timezone="Europe/Zurich")
     #@match_crontab('* * * * *', timezone="Europe/Zurich")
     async def say_song_interval(self, event):
-        await sleep(randint(1, 60 * 60 * 24 * 30))
+        await sleep(60 * randint(1, 60 * 24 * 30))
         song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
 
         if song_data['err']:
