@@ -132,7 +132,8 @@ class MorphOvumSkill(Skill):
             if output['err']:
                 if output['msg'] == 'requires admin privileges':
                     self.auth()
-                    return self.api_request(message)
+                    await self.api_request(message)
+                    return
                 output = 'Error: ' + output['msg']
 
             else:
