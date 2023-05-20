@@ -101,7 +101,7 @@ class MorphOvumSkill(Skill):
             )
         )
 
-    @match_regex('^!mo (?P<player>(a|ambience)|(m|music)|(c|clips))[ _]{1}(?P<command>[\w_]+) ?(?P<arg>\S+)?$')
+    @match_regex('^!mo (?P<player>(a|ambience)|(m|music)|(c|clips))[ _]{1}(?P<command>[\w_]+) ?(?P<arg>.+)?$')
     async def api_request(self, message):
         api_call = ''
 
