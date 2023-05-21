@@ -92,9 +92,11 @@ class MorphOvumSkill(Skill):
         song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/currenttrack').text)
         if song_data['err']:
             msg = 'Error: ' + str(song_data['msg'])
+        elif song_data['data']['is_playing']:
+            msg = self.append_webpage(song_data['msg'])
         else:
-            msg =  self.append_webpage(song_data['msg'])
-
+            msg = 'Music player is paused'
+        
         await message.respond(
             Message(
                 text=msg
