@@ -20,8 +20,8 @@ class MorphOvumSkill(Skill):
     def __init__(self, *args, **kwargs):
         super(MorphOvumSkill, self).__init__(*args, **kwargs)
         self.session = requests.Session()
+        self.api_methods = None
         self.auth()
-        self.api_methods = json.loads(self.session.get(self.config.get('morphovum_api_link') + '/help').text)['data']
 
         self.bot_was_last_message = False
 
@@ -46,6 +46,7 @@ class MorphOvumSkill(Skill):
         else:
             pass
 
+
     @match_always
     async def who_last_said(self, event):
         if hasattr(event, 'target') and event.target == self.config.get('room_music'):
@@ -59,15 +60,49 @@ class MorphOvumSkill(Skill):
     #
     ##################################################################
     def auth(self):
-        self.session.post(
+        response = self.session.post(
             self.config.get('morphovum_api_link') + 'admin',
             data={
                 'password_hash':sha256(self.config.get('morphovum_admin_cred').encode('utf-8')).hexdigest()
             }
         )
+        try:
+            authed = json.loads(response.text)['data']
+        except:
+            authed = False
+        if authed and not self.api_methods:
+            self.api_methods = json.loads(self.session.get(self.config.get('morphovum_api_link') + '/help').text)['data']
+        return authed
 
     def append_webpage(self, text):
         return '🎵 ' + self.config.get('morphovum_webpage_link') + ' 🎵 ' + text + ' 🎵'
+
+    async def api_request(self, api_call, arg=None): 
+        '''api request'''
+        if api_call in self.api_methods:
+            url = self.config.get('morphovum_api_link') + api_call.replace('_', '/')
+            if self.api_methods[api_call]['arg']:
+                output = json.loads(self.session.post(
+                    url,
+                    data={
+                        self.api_methods[api_call]['arg']:arg,
+                    }
+                ).text)
+            else:
+                output = json.loads(self.session.get(
+                    url
+                ).text)
+
+            if output['err']:
+                if output['msg'] == 'requires admin privileges':
+                    self.auth()
+                    await self.api_request(api_call, arg)
+                    return
+                output = 'Error: ' + output['msg']
+
+            else:
+                output = output['msg']
+            return output
 
     
     @match_regex('^!mo reauth$')
@@ -103,8 +138,8 @@ class MorphOvumSkill(Skill):
             )
         )
 
-    @match_regex('^!mo (?P<player>(a|ambience)|(m|music)|(c|clips))[ _]{1}(?P<command>[\w_]+) ?(?P<arg>.+)?$')
-    async def api_request(self, message):
+    @match_regex('^!mo (?P<player>(a|ambience)|(m|music)|(c|clips)|(playlist))[ _]{1}(?P<command>[\w_]+) ?(?P<arg>.+)?$')
+    async def called_api_request(self, message):
         api_call = ''
 
         player = message.entities['player']['value']
@@ -112,37 +147,43 @@ class MorphOvumSkill(Skill):
             api_call += 'music_'
         elif player in {'a', 'ambience'}:
             api_call += 'ambience_'
-        else: # player in {'c', 'clips'}
+        elif player in {'c', 'clips'}:
             api_call += 'clips_'
+        elif player in 'playlist':
+            api_call +='playlist_'
 
         api_call += message.entities['command']['value']
 
         if api_call in self.api_methods:
-            url = self.config.get('morphovum_api_link') + api_call.replace('_', '/')
             if self.api_methods[api_call]['arg']:
-                output = json.loads(self.session.post(
-                    url,
-                    data={
-                        self.api_methods[api_call]['arg']:message.entities['arg']['value']
-                    }
-                ).text)
+                output = await self.api_request(api_call, arg=message.entities['arg']['value'])
             else:
-                output = json.loads(self.session.get(
-                    url
-                ).text)
-
-            if output['err']:
-                if output['msg'] == 'requires admin privileges':
-                    self.auth()
-                    await self.api_request(message)
-                    return
-                output = 'Error: ' + output['msg']
-
-            else:
-                output = output['msg']
-
-            await message.respond(
-                Message(
-                    text=self.append_webpage(output)
+                output = await self.api_request(api_call)
+            
+            if output:
+                await message.respond(
+                    Message(
+                        text=self.append_webpage(output)
+                    )
                 )
+
+    @match_regex('^!help morphovum')
+    async def help_morphovum(self, event):
+        '''
+        Return help string to user
+        '''
+        text += 'Usage:<br>'
+        text += '<b>!mo m ls .</b> | Look around base music directory<br>'
+        text += '<b>!mo a toggle</b> | Toggle playing of ambience<br>'
+        text += '<b>!mo m lsp rock/stoner</b> | Cue everything in rock/stoner dir<br>'
+        text += '<b>!mo m lsa electronic</b> | Add and shuffle everything from electronic to current playlist<br>'
+        text += '<b>!s</b> | Return the current song<br>'
+        text += '<b>!mo c now</b> | Schedule a clip to be played now<br>'
+        text += 'See https://github.com/dud1337/MorphOvum for more'
+
+        await event.respond(
+            Message(
+                text=text
             )
+        )
+
