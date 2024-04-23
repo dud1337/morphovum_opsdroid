@@ -172,7 +172,7 @@ class MorphOvumSkill(Skill):
         '''
         Return help string to user
         '''
-        text += 'Usage:<br>'
+        text = 'Usage:<br>'
         text += '<b>!mo m ls .</b> | Look around base music directory<br>'
         text += '<b>!mo a toggle</b> | Toggle playing of ambience<br>'
         text += '<b>!mo m lsp rock/stoner</b> | Cue everything in rock/stoner dir<br>'
