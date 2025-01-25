@@ -60,13 +60,16 @@ class MorphOvumSkill(Skill):
     #
     ##################################################################
     def auth(self):
-        response = self.session.post(
+        self.session.post(
             self.config.get('morphovum_api_link') + 'admin',
             data={
                 'password_hash':sha256(self.config.get('morphovum_admin_cred').encode('utf-8')).hexdigest()
             }
         )
         try:
+            response = self.session.get(
+                self.config.get('morphovum_api_link') + 'admin'
+            )
             authed = json.loads(response.text)['data']
         except:
             authed = False
