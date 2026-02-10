@@ -141,6 +141,20 @@ class MorphOvumSkill(Skill):
             )
         )
 
+    @match_regex('^!skip$')
+    async def skip_song(self, message):
+        song_data = json.loads(self.session.get(self.config.get('morphovum_api_link') + 'music/skip').text)
+        if song_data['err']:
+            msg = 'Error: ' + str(song_data['msg'])
+        else:
+            msg = self.append_webpage(song_data['msg'])
+        
+        await message.respond(
+            Message(
+                text=msg
+            )
+        )
+
     @match_regex('^!mo (?P<player>(a|ambience)|(m|music)|(c|clips)|(playlist))[ _]{1}(?P<command>[\w_]+) ?(?P<arg>.+)?$')
     async def called_api_request(self, message):
         api_call = ''
